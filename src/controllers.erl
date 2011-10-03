@@ -11,20 +11,52 @@ urls() ->
 
 shops('GET', Req) ->
     Pid = local_client(),
-    case riakc_pb_socket:get(Pid, <<"shops">>, <<"keys">>) of
-        {ok, KeysObj} ->
-            Keys = mochijson2:decode(binary_to_term(riakc_obj:get_value(KeysObj))),
-            Inputs = [{<<"shops">>, Key} || Key <- Keys],
-            {ok, [{0, Res}]} = riakc_pb_socket:mapred(Pid, Inputs,
-                                               [{map, {modfun, riak_kv_mapreduce, map_object_value}, none, true}]),
-            Shops = lists:map(fun({struct, X}) -> X end,
-                              [mochijson2:decode(binary_to_term(ShopBin)) || ShopBin <- Res]),
-            {ok, HTML} = shops_dtl:render([{shops, Shops}]),
-            Req:ok({"text/html", HTML});
-        {error, notfound} ->
-            {ok, HTML} = shops_dtl:render([{shops, []}]),
-            Req:ok({"text/html", HTML})
+    Shops = fetch_shops(Pid, []),
+    {ok, HTML} = shops_dtl:render([{shops, Shops}]),
+    Req:ok({"text/html", HTML});
+shops('POST', Req) ->
+    Pid = local_client(),
+    PostData = Req:parse_post(),
+    Types = proplists:get_all_values("type", PostData),
+    EntityTypes = proplists:get_all_values("entity_type", PostData),
+    Shops = fetch_shops(Pid, Types),
+    {ok, HTML} = shops_dtl:render([{shops, Shops}]),
+    Req:ok({"text/html", HTML}).
+
+fetch_shops(Pid, Types) ->
+    Keys = case Types of
+               [] ->
+                   case riakc_pb_socket:get(Pid, <<"shops">>, <<"keys">>) of
+                       {ok, KeysObj} ->
+                           mochijson2:decode(binary_to_term(riakc_obj:get_value(KeysObj)));
+                       {error, notfound} ->
+                           []
+                   end;
+               _ ->
+                   lists:usort(find_keys(Types, Pid))
+           end,
+    Inputs = [{<<"shops">>, Key} || Key <- Keys],
+    case riakc_pb_socket:mapred(Pid, Inputs,
+                                [{map, {modfun, riak_kv_mapreduce, map_object_value}, none, true}]) of
+        {ok, [{0, Res}]} ->
+            lists:map(fun({struct, X}) -> X end,
+                      [mochijson2:decode(binary_to_term(ShopBin)) || ShopBin <- Res]);
+        {ok, []} ->
+            []
     end.
+
+find_keys(Types, Pid) ->
+    find_keys(Types, Pid, []).
+
+find_keys([], _, Acc) -> Acc;
+find_keys([T | Types], Pid, Acc) ->
+    Keys = case riakc_pb_socket:get(Pid, list_to_binary(T), <<"keys">>) of
+               {ok, KeysObj} ->
+                   mochijson2:decode(binary_to_term(riakc_obj:get_value(KeysObj)));
+               {error, notfound} ->
+                   []
+           end,
+    find_keys(Types, Pid, Acc ++ Keys).
 
 add_shop('POST', Req) ->
     Pid = local_client(),

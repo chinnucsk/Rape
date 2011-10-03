@@ -1,10 +1,4 @@
-%% @author Mochi Media <dev@mochimedia.com>
-%% @copyright 2010 Mochi Media <dev@mochimedia.com>
-
-%% @doc Web server for rape.
-
 -module(rape_web).
--author("Mochi Media <dev@mochimedia.com>").
 
 -export([start/1, stop/0, loop/2]).
 
@@ -56,7 +50,7 @@ dispatch(Req, [{Regexp, Function} | Rest]) ->
     Method = Req:get(method),
     Match = re:run(Path, Regexp, [global, {capture, all_but_first, list}]),
     case Match of
-        {match, [Args]} ->
+        {match, [_Args]} ->
             apply(controllers, Function, [Method, Req]);
         _ ->
             dispatch(Req, Rest)
