@@ -1,0 +1,9 @@
+%% -*- erlang -*-
+{application, rape,
+ [{description, "rape"},
+  {vsn, "0.1"},
+  {modules, []},
+  {registered, []},
+  {mod, {'rape_app', []}},
+  {env, []},
+  {applications, [kernel, stdlib, crypto]}]}.

@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Rape</title>
+    <link rel="stylesheet" type="text/css" href="/style.css" media="screen">
+  </head>
+  <body background="rape.jpg">
+        <form method="post", action="add_shop">
+            <table border="0">
+              <tr>
+                <td>Nazwa:</td>
+                <td><input type="text" name="name"></td>
+              </tr>
+              <tr>
+                <td>Rodzaj upraw:</td>
+                <td>
+                  <input type="checkbox" name="type" value="kukurydza" />Kukurydza<br />
+                  <input type="checkbox" name="type" value="rzepak" />Rzepak<br />
+                  <input type="checkbox" name="type" value="nawozy" />Nawozy<br />
+                  <input type="checkbox" name="type" value="warzywa" />Warzywa<br />
+                  <input type="checkbox" name="type" value="zboza" />Zboza<br />
+                  <input type="checkbox" name="type" value="zaprawy" />Zaprawy<br />
+                  <input type="checkbox" name="type" value="nasiona" />Nasiona<br />
+                </td>
+              </tr>
+            <tr>
+              <td>Rodzaj podmiotu:</td>
+              <td>
+                <select>
+                  <option value="sklep">Sklep</option>
+                  <option value="gospodarstwo">Gospodarstwo</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+                <td>Adres:</td>
+                <td><input type="text" name="address"></td>
+            </tr>
+            <tr>
+              <td>Powiat:</td>
+              <td><input type="text" name="powiat"></td>
+            </tr>
+            <tr>
+              <td>Wojewodztwo:</td>
+              <td><input type="text" name="wojewodztwo"></td>
+            </tr>
+            <tr>
+              <td>Telefon:</td>
+              <td><input type="text" name="phone"></td>
+            </tr>
+            <tr>
+              <td>E-mail:</td>
+              <td><input type="text" name="email"></td>
+            </tr>
+            <tr><td><input type="submit", value="Create"></td></tr>
+            </table>
+        </form>
+        <br/>
+        {% if shops %}
+        <table border="0">
+          <tr>
+            <th>Nazwa</th>
+            <th>Rodzaj upraw</th>
+            <th>Adres</th>
+            <th>Powiat</th>
+            <th>Wojewodztwo</th>
+            <th>E-mail</th>
+            <th>Telefon</th>
+          </tr>
+          {% for shop in shops %}
+            <tr>
+              <td>{{ shop.name }}</td>
+              <td>{% for t in shop.type %} {{ t }} {% endfor %} </td>
+              <td>{{ shop.address }}</td>
+              <td>{{ shop.powiat }}</td>
+              <td>{{ shop.wojewodztwo }}</td>
+              <td><a href="mailto: {{ shop.email }}">{{ shop.email }}</a></td>
+              <td>{{ shop.phone }}</td>
+            </tr>
+          {% endfor %}
+        </table>
+        {% else %}
+            <p>Baza danych jest pusta.</p>
+        {% endif %}
+  </body>
+</html>
