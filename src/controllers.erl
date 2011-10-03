@@ -10,14 +10,14 @@ urls() ->
     ].
 
 shops('GET', Req) ->
-    Shops = fetch_shops([]),
+    Shops = fetch_shops(),
     {ok, HTML} = shops_dtl:render([{shops, Shops}]),
     Req:ok({"text/html", HTML});
 shops('POST', Req) ->
     PostData = Req:parse_post(),
     Types = proplists:get_all_values("type", PostData),
     EntityTypes = proplists:get_all_values("entity_type", PostData),
-    Shops = fetch_shops(Types),
+    Shops = fetch_shops(Types, EntityTypes),
     {ok, HTML} = shops_dtl:render([{shops, Shops}]),
     Req:ok({"text/html", HTML}).
 
@@ -37,7 +37,10 @@ add_shop('POST', Req) ->
                   {"Content-Type", "text/html; charset=UTF-8"}],
                  ""}).
 
-fetch_shops(Types) ->
+fetch_shops() ->
+    fetch_shops([], []).
+
+fetch_shops(Types, EntityTypes) ->
     Pid = local_client(),
     Keys = case Types of
                [] ->
@@ -52,7 +55,7 @@ fetch_shops(Types) ->
            end,
     Inputs = [{<<"shops">>, Key} || Key <- Keys],
     case riakc_pb_socket:mapred(Pid, Inputs,
-                                [{map, {modfun, riak_kv_mapreduce, map_object_value}, none, true}]) of
+                                [{map, {modfun, rape_mapred, foo}, none, true}]) of
         {ok, [{0, Res}]} ->
             lists:map(fun({struct, X}) -> X end,
                       [mochijson2:decode(binary_to_term(ShopBin)) || ShopBin <- Res]);
