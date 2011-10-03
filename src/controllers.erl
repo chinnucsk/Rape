@@ -1,5 +1,5 @@
 -module(controllers).
--export([urls/0, shops/2, add_shop/2]).
+-export([urls/0, shops/2, add_shop/2, local_client/0]).
 
 
 urls() ->
@@ -10,20 +10,35 @@ urls() ->
     ].
 
 shops('GET', Req) ->
-    Pid = local_client(),
-    Shops = fetch_shops(Pid, []),
+    Shops = fetch_shops([]),
     {ok, HTML} = shops_dtl:render([{shops, Shops}]),
     Req:ok({"text/html", HTML});
 shops('POST', Req) ->
-    Pid = local_client(),
     PostData = Req:parse_post(),
     Types = proplists:get_all_values("type", PostData),
     EntityTypes = proplists:get_all_values("entity_type", PostData),
-    Shops = fetch_shops(Pid, Types),
+    Shops = fetch_shops(Types),
     {ok, HTML} = shops_dtl:render([{shops, Shops}]),
     Req:ok({"text/html", HTML}).
 
-fetch_shops(Pid, Types) ->
+add_shop('GET', Req) ->
+    {ok, HTML} = add_shop_dtl:render([]),
+    Req:ok({"text/html", HTML});
+add_shop('POST', Req) ->
+    Pid = local_client(),
+    PostData = Req:parse_post(),
+    Types = proplists:get_all_values("type", PostData),
+    Shop = mochijson2:encode([{"type", Types} | proplists:delete("type", PostData)]),
+    ShopObj = riakc_obj:new(<<"shops">>, undefined, Shop),
+    {ok, Key} = riakc_pb_socket:put(Pid, ShopObj),
+    add_to_index(Pid, ["shops" | Types], Key),
+    Req:respond({302,
+                 [{"Location", "/shops"},
+                  {"Content-Type", "text/html; charset=UTF-8"}],
+                 ""}).
+
+fetch_shops(Types) ->
+    Pid = local_client(),
     Keys = case Types of
                [] ->
                    case riakc_pb_socket:get(Pid, <<"shops">>, <<"keys">>) of
@@ -57,19 +72,6 @@ find_keys([T | Types], Pid, Acc) ->
                    []
            end,
     find_keys(Types, Pid, Acc ++ Keys).
-
-add_shop('POST', Req) ->
-    Pid = local_client(),
-    PostData = Req:parse_post(),
-    Types = proplists:get_all_values("type", PostData),
-    Shop = mochijson2:encode([{"type", Types} | proplists:delete("type", PostData)]),
-    ShopObj = riakc_obj:new(<<"shops">>, undefined, Shop),
-    {ok, Key} = riakc_pb_socket:put(Pid, ShopObj),
-    add_to_index(Pid, ["shops" | Types], Key),
-    Req:respond({302,
-                 [{"Location", "/shops"},
-                  {"Content-Type", "text/html; charset=UTF-8"}],
-                 ""}).
 
 %% Y U NO HAVE SECONDARY INDEX SUPPORT YET, ERLANG RIAK CLIENT?!?!
 add_to_index(_, [], _) ->
